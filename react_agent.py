@@ -2,6 +2,7 @@ from langchain.agents import create_agent
 from factory import get_chat_model
 # 确保这里的文件名和你的工具箱文件名一致（看你刚才的截图是 agent_tool）
 from agent_tool import tools_list
+from config import agent_config
 
 class ReactAgent:
     def __init__(self):
@@ -15,9 +16,7 @@ class ReactAgent:
         self.tools = tools_list
 
         # 3. 设定系统提示词 (新版 API 非常简洁，直接传字符串即可)
-        self.system_prompt = """你是一个顶级的生物医学工程科研辅助智能体。
-        你的任务是协助科研人员解决文献检索、实验参数计算和前沿数据探索等问题。
-        你有权自主决定是否调用工具。在回复时，请保持严谨、专业的学术口吻。"""
+        self.system_prompt = agent_config.system_prompt
 
         # 4. 创建 Agent
         # 新版 API：不再需要繁琐的 AgentExecutor，create_agent 会在底层自动帮你构建好循环引擎
@@ -37,7 +36,7 @@ class ReactAgent:
         # 核心修改：在这里加入 config 配置，强制限制最多循环 5 次（防止死循环破产）
         response = self.agent.invoke(
             {"messages": messages},
-            config={"recursion_limit": 5}
+            config={"recursion_limit":agent_config.recursion_limit}
         )
 
         return response["messages"][-1].content
