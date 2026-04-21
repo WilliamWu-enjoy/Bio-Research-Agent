@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  basic-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Syntax check (py_compile)
+        run: |
+          python -m py_compile api_app.py
+          python -m py_compile config.py
+          python -m py_compile react_agent.py
+          python -m py_compile factory.py
+          python -m py_compile vector_store.py
+          python -m py_compile agent_tool.py
+          python -m py_compile rag_service.py
+
+      - name: Import smoke test
+        env:
+          OPENAI_API_KEY: "ci_dummy_key"
+          OPENAI_BASE_URL: "https://api.openai.com/v1"
+          APP_API_KEY: "ci_dummy_app_key"
+        run: |
+          python -c "import config; print('config_import_ok')"
+          python -c "import factory; print('factory_import_ok')"
+          python -c "import api_app; print('api_app_import_ok')"
+
+      - name: FastAPI route smoke test
+        env:
+          OPENAI_API_KEY: "ci_dummy_key"
+          OPENAI_BASE_URL: "https://api.openai.com/v1"
+          APP_API_KEY: "ci_dummy_app_key"
+        run: |
+          python - << 'PY'
+          from fastapi.testclient import TestClient
+          from api_app import app
+
+          client = TestClient(app)
+
+          # health 白名单接口：应可访问
+          r = client.get("/v1/health")
+          assert r.status_code == 200
+          body = r.json()
+          assert "code" in body and "request_id" in body
+
+          # chat 不带 key：应鉴权失败
+          r2 = client.post("/v1/chat", json={"query": "test", "chat_history": []})
+          assert r2.status_code in (400, 401)
+          body2 = r2.json()
+          assert body2.get("code") == 1002
+          print("route_smoke_test_ok")
+          PY
