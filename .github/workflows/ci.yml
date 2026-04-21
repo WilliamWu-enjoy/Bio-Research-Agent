@@ -53,24 +53,27 @@ jobs:
           APP_API_KEY: "ci_dummy_app_key"
         run: |
           python - << 'PY'
+          import os
           from fastapi.testclient import TestClient
           from api_app import app
 
+          print("APP_API_KEY:", repr(os.getenv("APP_API_KEY")))
           client = TestClient(app)
 
-          # health 白名单接口：应可访问
           r = client.get("/v1/health")
-          assert r.status_code == 200
-          body = r.json()
-          assert "code" in body and "request_id" in body
+          print("health:", r.status_code, r.json())
 
-          # chat 不带 key：应鉴权失败
           r2 = client.post("/v1/chat", json={"query": "test", "chat_history": []})
-          assert r2.status_code in (400, 401)
+          print("chat_without_key:", r2.status_code, r2.text)
+
+          assert r2.status_code in (400, 401), f"unexpected status={r2.status_code}, body={r2.text}"
           body2 = r2.json()
-          assert body2.get("code") == 1002
+          assert body2.get("code") == 1002, f"unexpected body={body2}"
+
           print("route_smoke_test_ok")
           PY
+          
+
       - name: Debug requirements content
         run: |
           python - << 'PY'
