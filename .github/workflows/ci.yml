@@ -23,7 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip show fastapi
+          python -m pip install "fastapi>=0.115,<1"
           python -c "import fastapi; print('fastapi_ok', fastapi.__version__)"
 
       - name: Syntax check (py_compile)
@@ -70,4 +70,13 @@ jobs:
           body2 = r2.json()
           assert body2.get("code") == 1002
           print("route_smoke_test_ok")
+          PY
+      - name: Debug requirements content
+        run: |
+          python - << 'PY'
+          from pathlib import Path
+          p = Path("requirements.txt")
+          print("exists:", p.exists(), "size:", p.stat().st_size if p.exists() else -1)
+          for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+              print(i, repr(line))
           PY
