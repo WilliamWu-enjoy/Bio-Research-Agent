@@ -69,7 +69,8 @@ jobs:
           assert r2.status_code in (400, 401), f"unexpected status={r2.status_code}, body={r2.text}"
           body2 = r2.json()
           assert body2.get("code") == 1002, f"unexpected body={body2}"
-
+          assert body2.get("message") == "AUTH_FAILED"
+          
           print("route_smoke_test_ok")
           PY
           
